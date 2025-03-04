@@ -26,44 +26,29 @@ ECHO=@echo
 
 help::
 	$(ECHO) "Makefile Usage:"
-	$(ECHO) "  make all"
+	$(ECHO) ""
+	$(ECHO) "  make compile"
+	$(ECHO) "      Command to generate xo kernel file"
 	$(ECHO) ""
 	$(ECHO) "  make clean"
 	$(ECHO) "      Command to remove all the generated files."
-	$(ECHO) ""
+
+PLATFORM := xilinx_vck5000_gen4x8_xdma_2_202210_1
+
+TARGET := hw
+
 
 .phony: clean
 
-################## software build for XRT Native API code
-CXXFLAGS := -std=c++17 -Wno-deprecated-declarations
-CXXFLAGS += -I$(XILINX_XRT)/include -I$(XILINX_HLS)/include
+################## hardware build 
 
-LDFLAGS := -L$(XILINX_XRT)/lib
-LDFLAGS += $(LDFLAGS) -lxrt_coreutil
+XOCCFLAGS := --platform $(PLATFORM) -t $(TARGET)  -s -g
 
-# You can use them for including something. For example, opencv
-LIBS = `pkg-config --libs opencv`
-CFLAGS = `pkg-config --cflags opencv`
+compile: mutual_information_master_$(TARGET).xo
 
-EXECUTABLE := host_overlay.exe
-
-HOST_SRCS := ./host_code.cpp
-
-all: build_sw
-build_sw: $(EXECUTABLE)
-
-run_sw:
-	./$(EXECUTABLE)
-
-#Eventually add LIBS and CFLAGS
-$(EXECUTABLE): $(HOST_SRCS)
-	$(CXX) -o $(EXECUTABLE) $^ $(CXXFLAGS) $(LDFLAGS) $(CFLAGS) $(LIBS)
-	@rm -f ./overlay_hw.xclbin
-	@rm -f ./overlay_hw_emu.xclbin
-	@ln -s ../linking/overlay_hw.xclbin
-	@ln -s ../linking/overlay_hw_emu.xclbin
+mutual_information_master_$(TARGET).xo: ./mutual_information_master.cpp
+	v++ $(XOCCFLAGS) --kernel mutual_information_master -I./include/hw/mutualInfo -c -o $@ $<
 
 ################## clean up
 clean:
-	$(RM) -r _x .Xil *.ltx *.log *.jou *.info host_overlay.exe *.xo *.xo.* *.str *.xclbin .run *.wdb *.json *.wcfg *.protoinst *.csv
-	
+	$(RM) -rf *.xo *.xclbin *.xclbin.info *.xclbin.link_summary *.jou *.log *.xo.compile_summary _x
