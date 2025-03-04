@@ -43,23 +43,15 @@ include ${CONFIG}
 # can be either STEP or TX
 TASK := STEP
 
-hw_dependencies := compile_aie compile_data_movers
-ifeq ($(TASK),STEP)
-    hw_dependencies += compile_krnl_mutual_info
-else ifneq ($(TASK),TX)
-    $(error TASK must be either STEP or TX: `$(TASK)` is not valid)
-endif
+hw_dependencies := compile_krnl_mutual_info 
 
 build_hw: $(hw_dependencies) hw_link
 
 compile_krnl_mutual_info:
 	make -C ./mutual_info compile TARGET=$(TARGET) PLATFORM=$(PLATFORM)
 
-compile_data_movers:
-	make -C ./data_movers compile TARGET=$(TARGET) PLATFORM=$(PLATFORM)
-
 hw_link:
-	make -C ./hw all TARGET=$(TARGET) PLATFORM=$(PLATFORM)
+	make -C ./linking all TARGET=$(TARGET) PLATFORM=$(PLATFORM)
 
 # Build software object
 build_sw: 
