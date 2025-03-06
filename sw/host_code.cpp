@@ -67,13 +67,16 @@ void write_slice_in_buffer(uint8_t *src, uint8_t *dest, const int slice_index, c
 
 int read_volume_from_file_PNG(uint8_t *volume, const int SIZE, const int N_COUPLES, const int BORDER_PADDING, const int DEPTH_PADDING, const std::string &path) {
     for (int i = 0; i < N_COUPLES; i++) {
-        std::string s = path + "IM" + std::to_string(i+1) + ".png";
+        std::string s = path + "IM" + std::to_string(i) + ".png";
         cv::Mat image = cv::imread(s, cv::IMREAD_GRAYSCALE);
-        if (!image.data) return -1;
+        if (!image.data) 
+        {
+            std::cerr << "Could not open file" << std::endl;
+            return -1;
+        }
 
         // add border-padding of 1px around the image
         cv::copyMakeBorder(image, image, BORDER_PADDING, BORDER_PADDING, BORDER_PADDING, BORDER_PADDING, cv::BORDER_CONSTANT, 0);
-
         // copy the slice into the buffer
         std::vector<uint8_t> tmp((SIZE+2*BORDER_PADDING)*(SIZE+2*BORDER_PADDING));
         tmp.assign(image.begin<uint8_t>(), image.end<uint8_t>());
@@ -194,30 +197,37 @@ double software_mi(int n_couples, const std::string &flt_path, const std::string
 
 int main(int argc, char *argv[]) {
 
-    int n_couples = 512;
-    int padding = (NUM_PIXELS_PER_READ - (n_couples % NUM_PIXELS_PER_READ)) % NUM_PIXELS_PER_READ;
-
+    int n_couples;
     if (argc >= 2) {
         n_couples = atoi(argv[1]);
         if (n_couples > N_COUPLES_MAX)
             n_couples = N_COUPLES_MAX;
-    }    int buffer_size = DIMENSION*DIMENSION * (n_couples+padding);
+    }    
 
-    std::string path_ref = "dataset/ref/";
-    std::string path_flt = "dataset/flt/";
+    //int padding = (NUM_PIXELS_PER_READ - (n_couples % NUM_PIXELS_PER_READ)) % NUM_PIXELS_PER_READ;
+    int padding = 0;
+    std::cout << "Padding: " << padding << std::endl;
+    int buffer_size = DIMENSION*DIMENSION * (n_couples+padding);
+    std::cout << "Buffer size: " << buffer_size << std::endl;
 
+    std::string path_ref = "/home/users/giuseppe.sorrentino/AMD_application/3DMI/sw/ref/";
+    std::string path_flt = "/home/users/giuseppe.sorrentino/AMD_application/3DMI/sw/flt/";
 
     uint8_t* input_flt  = new uint8_t[DIMENSION*DIMENSION * (n_couples+padding)];
     uint8_t* input_ref = new uint8_t[DIMENSION*DIMENSION * (n_couples+padding)];
 
-    if (read_volume_from_file_PNG(input_flt, DIMENSION, n_couples, 1, padding, path_flt) != 0) {
+    std::cout<<"Reading volume FLT"<<std::endl;
+    if (read_volume_from_file_PNG(input_flt, DIMENSION, n_couples, 0, padding, path_flt) != 0) {
         std::cerr << "Error reading flt volume" << std::endl;
         return EXIT_FAILURE;
     }
-    if (read_volume_from_file_PNG(input_ref, DIMENSION, n_couples, 1, padding, path_ref) != 0) {
+    std::cout<<"Reading volume REF"<<std::endl;
+    if (read_volume_from_file_PNG(input_ref, DIMENSION, n_couples, 0, padding, path_ref) != 0) {
         std::cerr << "Error reading ref volume" << std::endl;
         return EXIT_FAILURE;
     }
+
+    std::cout<<"Volumes read"<<std::endl;
 
 
 //------------------------------------------------LOADING XCLBIN------------------------------------------    
@@ -232,23 +242,30 @@ int main(int argc, char *argv[]) {
     std::cout << "Done" << std::endl;
 //----------------------------------------------INITIALIZING THE BOARD------------------------------------------
 
+    std::cout << "2. Initializing the board... ";
     // create kernel objects
     xrt::kernel krnl_mutual_info  = xrt::kernel(device, xclbin_uuid, "mutual_information_master");
+    std::cout << "Done" << std::endl;
 
+    std::cout << "3. Creating Memory Banks & Buffer " << std::endl;
     // get memory bank groups for device buffer - required for axi master input/ouput
     xrtMemoryGroup bank_flt  = krnl_mutual_info.group_id(arg_mi_img_flt);
     xrtMemoryGroup bank_ref  = krnl_mutual_info.group_id(arg_mi_img_ref);
     xrtMemoryGroup bank_mutual_info_output  = krnl_mutual_info.group_id(arg_mi_out);
 
     // create device buffers - if you have to load some data, here they are
-    xrt::bo buffer_flt = xrt::bo(device, buffer_size * sizeof(int32_t), xrt::bo::flags::normal, bank_flt); 
-    xrt::bo buffer_ref = xrt::bo(device, buffer_size * sizeof(int32_t), xrt::bo::flags::normal, bank_ref); 
+    xrt::bo buffer_flt = xrt::bo(device, buffer_size * sizeof(uint8_t), xrt::bo::flags::normal, bank_flt); 
+    xrt::bo buffer_ref = xrt::bo(device, buffer_size * sizeof(uint8_t), xrt::bo::flags::normal, bank_ref); 
     xrt::bo buffer_output = xrt::bo(device, sizeof(float), xrt::bo::flags::normal, bank_mutual_info_output);
-
+    std::cout << "Done" << std::endl;
     // create runner instances
-    xrt::run run_mutual_info  = xrt::run(krnl_mutual_info);
 
+    std::cout << "4. Create Run Objects" << std::endl;
+    xrt::run run_mutual_info  = xrt::run(krnl_mutual_info);
+    std::cout << "Done" << std::endl;
     // set setup_aie kernel arguments
+
+    std::cout << "5. Set Kernel Arguments" << std::endl;
     run_mutual_info.set_arg(arg_mi_img_flt, buffer_flt);
     run_mutual_info.set_arg(arg_mi_img_ref, buffer_ref);
     run_mutual_info.set_arg(arg_mi_out, buffer_output);
@@ -258,19 +275,23 @@ int main(int argc, char *argv[]) {
     // write data into the input buffer
     buffer_flt.write(input_flt);
     buffer_flt.sync(XCL_BO_SYNC_BO_TO_DEVICE);
+    std::cout << "Done Write FLT" << std::endl;
     buffer_ref.write(input_ref);
     buffer_ref.sync(XCL_BO_SYNC_BO_TO_DEVICE);
+    std::cout << "Done Write REF" << std::endl;
 
+    // ---------------------------------Run the Kernel--------------------------------------
+    std::cout << "6. Run the Kernel" << std::endl;
     // run the kernel
     run_mutual_info.start();
     run_mutual_info.wait();
-
+    std::cout << "Done" << std::endl;
 
     // read the output buffer
+    std::cout << "7. Read the output buffer" << std::endl;
     buffer_output.sync(XCL_BO_SYNC_BO_FROM_DEVICE);
     float mutual_info;
     buffer_output.read(&mutual_info);
-
     std::cout << "Mutual Information: " << mutual_info << std::endl;
     float sw_mi = software_mi(n_couples, path_flt, path_ref);
     std::cout << "Software Mutual Information: " << sw_mi << std::endl;
