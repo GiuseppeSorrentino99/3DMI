@@ -42,8 +42,8 @@ LDFLAGS := -L$(XILINX_XRT)/lib
 LDFLAGS += $(LDFLAGS) -lxrt_coreutil
 
 # You can use them for including something. For example, opencv
-LIBS = `pkg-config --libs opencv`
-CFLAGS = `pkg-config --cflags opencv`
+LIBS = `pkg-config --libs opencv4`
+CFLAGS = `pkg-config --cflags opencv4`
 
 EXECUTABLE := host_overlay.exe
 

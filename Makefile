@@ -26,7 +26,7 @@ ECHO=@echo
 
 APP_NAME ?= trilli_app
 TARGET := hw
-PLATFORM := xilinx_vck5000_gen4x8_xdma_2_202210_1
+PLATFORM := xilinx_u55c_gen3x16_xdma_3_202210_1
 
 help::
 	$(ECHO) "Makefile Usage:"

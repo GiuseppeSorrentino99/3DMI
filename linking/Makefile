@@ -33,8 +33,8 @@ help::
 	$(ECHO) "      Command to remove all the generated files."
 	$(ECHO) ""
 
-
-PLATFORM ?= xilinx_vck5000_gen4x8_qdma_2_202220_1
+PLATFORM ?= xilinx_u55c_gen3x16_xdma_3_202210_1
+#xilinx_vck5000_gen4x8_qdma_2_202220_1
 
 TARGET := hw
 
@@ -42,19 +42,19 @@ TARGET := hw
 XOCCLFLAGS := --kernel_frequency 200 --platform $(PLATFORM) -t $(TARGET)  -s -g
 
 XOS     := ../mutual_info/mutual_information_master_$(TARGET).xo 
+XCLBIN  := overlay_$(TARGET).xclbin
 
 XSA_OBJ := overlay_$(TARGET).xsa
-XCLBIN  := overlay_$(TARGET).xclbin
 
 .phony: clean
 
 all: $(XCLBIN)
 
 $(XCLBIN): $(XSA_OBJ)
-	v++ -p -t $(TARGET) -f $(PLATFORM) $^ -o $@ --package.boot_mode=ospi
+	v++ -p -t $(TARGET) -f $(PLATFORM) $^ -o ${XCLBIN} --package.boot_mode=ospi
 
 $(XSA_OBJ): $(XOS) 
-	v++ -l $(XOCCFLAGS) $(XOCCLFLAGS) --config xclbin_overlay.cfg -o $@ $^
+	v++ -l $(XOCCFLAGS) $(XOCCLFLAGS) --config xclbin_overlay.cfg -o ${XCLBIN}  $^
 
 clean:
 	$(RM) -r _x .Xil .ipcache *.ltx *.log *.sh *.jou *.info *.xclbin *.xo.* *.str *.xsa *.cdo.bin *bif *BIN *.package_summary *.link_summary *.txt *.bin && rm -rf cfg emulation_data sim
