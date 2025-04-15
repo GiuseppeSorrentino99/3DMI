@@ -7,15 +7,9 @@ this is a useful starting point.
 
 ## Main Structure
 
-**aie** - contains the code for AI Engine kernels.  
-**fpga** - contains the PL component.  
-**common** - contains some useful included constants and headers.  
-**linking** - contains the cfg file requiered to connect your components.  
+**mutual_info** - contains the hardware for your application. 
 **sw** - contains the software for your application.  
-
-### aie
-data - contains the input source for your simulation.  
-src - contains the code.  
+**linking** - contains the linking info
 
 **Main Commands**
 
@@ -78,4 +72,5 @@ make install
 To add your OpenCV to the PATH through the .bashrc file, modify the .bashrc file as follows:
 ```
 export PKG_CONFIG_PATH=$HOME/local/lib/pkgconfig:$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
 ```
