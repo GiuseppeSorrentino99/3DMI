@@ -51,8 +51,8 @@ fi
 switch=""
 
 #change this platform to the platform you are using
-platform="xilinx_vck5000_gen4x8_qdma_2_202220_1"
-
+#platform="xilinx_vck5000_gen4x8_qdma_2_202220_1"
+platform="xilinx_u55c_gen3x16_xdma_3_202210_1"
 #if number of arguments is greater than 2, the second one is platform
 
 if [ "$#" -gt 2 ]

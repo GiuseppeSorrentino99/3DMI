@@ -210,8 +210,8 @@ int main(int argc, char *argv[]) {
     int buffer_size = DIMENSION*DIMENSION * (n_couples+padding);
     std::cout << "Buffer size: " << buffer_size << std::endl;
 
-    std::string path_ref = "/home/users/giuseppe.sorrentino/AMD_application/3DMI/sw/ref/";
-    std::string path_flt = "/home/users/giuseppe.sorrentino/AMD_application/3DMI/sw/flt/";
+    std::string path_ref = "/home/users/marco.venere/3DMI_HBM/sw/ref/";
+    std::string path_flt = "/home/users/marco.venere/3DMI_HBM/sw/flt/";
 
     uint8_t* input_flt  = new uint8_t[DIMENSION*DIMENSION * (n_couples+padding)];
     uint8_t* input_ref = new uint8_t[DIMENSION*DIMENSION * (n_couples+padding)];
