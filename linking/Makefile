@@ -39,7 +39,7 @@ PLATFORM ?= xilinx_u55c_gen3x16_xdma_3_202210_1
 TARGET := hw
 
 # Use --optimize 3 to enable post-route optimizations. This may improve the bitstream but SIGNIFICANTLY increase compilation time
-XOCCLFLAGS := --kernel_frequency 200 --platform $(PLATFORM) -t $(TARGET)  -s -g
+XOCCLFLAGS := --kernel_frequency 200 --platform $(PLATFORM) -t $(TARGET)  #-s -g
 
 XOS     := ../mutual_info/mutual_information_master_$(TARGET).xo 
 XCLBIN  := overlay_$(TARGET).xclbin
