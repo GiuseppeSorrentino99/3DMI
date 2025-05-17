@@ -30,7 +30,7 @@ SOFTWARE.
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-typedef float data_t;
+//typedef float data_t;
 #define DATA_T_BITWIDTH 32
 
 #define DIMENSION 512

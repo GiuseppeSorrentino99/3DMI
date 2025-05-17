@@ -63,7 +63,7 @@ void split_stream(hls::stream<Tin> &in, hls::stream<Tout> out[STREAM]){
         #pragma HLS PIPELINE
         Tin tmp = in.read();
         for(int j = 0; j < STREAM; j++){
-        	ap_uint<out_bitwidth> unpacked = tmp.range((j+1)*out_bitwidth - 1, j*out_bitwidth);
+        	ap_uint<out_bitwidth> unpacked = tmp.data.range((j+1)*out_bitwidth - 1, j*out_bitwidth);
         	Tout elem = *((Tout *)&unpacked);
         	out[j].write(elem);
         }
@@ -79,7 +79,7 @@ void split_stream_volume(hls::stream<Tin> &in, hls::stream<Tout> out[STREAM],int
         #pragma HLS PIPELINE
         Tin tmp = in.read();
         for(int j = 0; j < STREAM; j++){
-        	ap_uint<out_bitwidth> unpacked = tmp.range((j+1)*out_bitwidth - 1, j*out_bitwidth);
+        	ap_uint<out_bitwidth> unpacked = tmp.data.range((j+1)*out_bitwidth - 1, j*out_bitwidth);
         	Tout elem = *((Tout *)&unpacked);
         	out[j].write(elem);
         }

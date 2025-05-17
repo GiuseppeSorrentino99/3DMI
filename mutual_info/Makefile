@@ -49,6 +49,9 @@ compile: mutual_information_master_$(TARGET).xo
 mutual_information_master_$(TARGET).xo: ./mutual_information_master.cpp
 	v++ $(XOCCFLAGS) --kernel mutual_information_master -I./include/hw/mutualInfo -c -o $@ $<
 
+testbench_mutual_information_master: testbench/testbench_mutual_information_master.cpp
+	g++ -std=c++14 -I. -I$(XILINX_HLS)/include  -o testbench/$@ $^ -O2  
+
 ################## clean up
 clean:
 	$(RM) -rf *.xo *.xclbin *.xclbin.info *.xclbin.link_summary *.jou *.log *.xo.compile_summary _x

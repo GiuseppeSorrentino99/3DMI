@@ -139,10 +139,14 @@ void compute_mutual_information(hls::stream<Tin>& in0, hls::stream<Tin>& in1, hl
 	int tmp3 = tmp0 + tmp1 - tmp2;
 #endif
 	//nota: prima chiamavamo hls::log2f, leggendo però da internet sembra sia integrato in hls_math.h. Leggendo però sembra che log2 possa prendere un float, senza quindi log2f
-	Tout tmp4 = -tmp3*1.0f/((n_couples-padding)*DIMENSION*DIMENSION) + MIN_HIST_BITS_NO_OVERFLOW - (log2f(N_COUPLES_MAX) - (log2f(n_couples-padding)));
+	ENTROPY_TYPE tmp4 = -tmp3*1.0f/((n_couples-padding)*DIMENSION*DIMENSION) + MIN_HIST_BITS_NO_OVERFLOW - (log2f(N_COUPLES_MAX) - (log2f(n_couples-padding)));
 
 	//printf("tmp0: %f, tmp1: %f, tmp2: %f, tmp3: %f, tmp4: %f\n", tmp0, tmp1, tmp2, tmp3, tmp4);
-	out.write(tmp4);
+	Tout tmp4_final;
+	tmp4_final.data = tmp4;
+	tmp4_final.last = 1;
+	tmp4_final.keep = -1;
+	out.write(tmp4_final);
 
 }
 

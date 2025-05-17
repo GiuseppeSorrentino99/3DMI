@@ -43,12 +43,15 @@ include ${CONFIG}
 # can be either STEP or TX
 TASK := STEP
 
-hw_dependencies := compile_krnl_mutual_info 
+hw_dependencies := compile_krnl_mutual_info compile_krnl_fpga
 
 build_hw: $(hw_dependencies) hw_link
 
 compile_krnl_mutual_info:
 	make -C ./mutual_info compile TARGET=$(TARGET) PLATFORM=$(PLATFORM)
+	
+compile_krnl_fpga:
+	make -C ./fpga compile TARGET=$(TARGET) PLATFORM=$(PLATFORM)
 
 hw_link:
 	make -C ./linking all TARGET=$(TARGET) PLATFORM=$(PLATFORM)
@@ -105,7 +108,7 @@ build_and_pack:
 	make pack
 
 # Clean objects
-clean: clean_mutual_info clean_hw clean_sw
+clean: clean_mutual_info clean_hw clean_sw clean_fpga
 
 clean_mutual_info:
 	make -C ./mutual_info clean
@@ -115,3 +118,6 @@ clean_hw:
 
 clean_sw: 
 	make -C ./sw clean
+
+clean_fpga:
+	make -C ./fpga clean

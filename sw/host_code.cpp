@@ -32,8 +32,8 @@ SOFTWARE.
 #include "experimental/xrt_kernel.h"
 #include "experimental/xrt_uuid.h"
 #include "../common/common.h"
-#include "../mutual_info/include/hw/mutualInfo/entropy.h"
-#include "../mutual_info/include/hw/mutualInfo/histogram.h"
+#include "../mutual_info/include/hw/mutualInfo/entropy.hpp"
+#include "../mutual_info/include/hw/mutualInfo/histogram.hpp"
 
 // For hw emulation, run in sw directory: source ./setup_emu.sh -s on
 
@@ -48,6 +48,11 @@ SOFTWARE.
 #define arg_mi_out 2
 #define arg_mi_n_couples 3
 #define arg_mi_padding 4
+
+#define arg_mm2s_n_couples 0
+#define arg_mm2s_input_flt 1
+#define arg_mm2s_input_ref 2
+#define arg_s2mm_mi 1
 
 bool get_xclbin_path(std::string& xclbin_file);
 std::ostream& bold_on(std::ostream& os);
@@ -204,14 +209,13 @@ int main(int argc, char *argv[]) {
             n_couples = N_COUPLES_MAX;
     }    
 
-    //int padding = (NUM_PIXELS_PER_READ - (n_couples % NUM_PIXELS_PER_READ)) % NUM_PIXELS_PER_READ;
     int padding = 0;
     std::cout << "Padding: " << padding << std::endl;
     int buffer_size = DIMENSION*DIMENSION * (n_couples+padding);
     std::cout << "Buffer size: " << buffer_size << std::endl;
 
-    std::string path_ref = "/home/users/marco.venere/3DMI_HBM/sw/ref/";
-    std::string path_flt = "/home/users/marco.venere/3DMI_HBM/sw/flt/";
+    std::string path_ref = "/home/users/giuseppe.sorrentino/fix_3DMI/3DMI/sw/ref/";
+    std::string path_flt = "/home/users/giuseppe.sorrentino/fix_3DMI/3DMI/sw/flt/";
 
     uint8_t* input_flt  = new uint8_t[DIMENSION*DIMENSION * (n_couples+padding)];
     uint8_t* input_ref = new uint8_t[DIMENSION*DIMENSION * (n_couples+padding)];
@@ -245,32 +249,35 @@ int main(int argc, char *argv[]) {
     std::cout << "2. Initializing the board... ";
     // create kernel objects
     xrt::kernel krnl_mutual_info  = xrt::kernel(device, xclbin_uuid, "mutual_information_master");
+    xrt::kernel krnl_mm2s  = xrt::kernel(device, xclbin_uuid, "mm2s");
+    xrt::kernel krnl_s2mm  = xrt::kernel(device, xclbin_uuid, "s2mm");
     std::cout << "Done" << std::endl;
 
     std::cout << "3. Creating Memory Banks & Buffer " << std::endl;
     // get memory bank groups for device buffer - required for axi master input/ouput
-    xrtMemoryGroup bank_flt  = krnl_mutual_info.group_id(arg_mi_img_flt);
-    xrtMemoryGroup bank_ref  = krnl_mutual_info.group_id(arg_mi_img_ref);
-    xrtMemoryGroup bank_mutual_info_output  = krnl_mutual_info.group_id(arg_mi_out);
+
+    xrtMemoryGroup bank_mm2s_input_flt  = krnl_mm2s.group_id(arg_mm2s_input_flt);
+    xrtMemoryGroup bank_mm2s_input_ref  = krnl_mm2s.group_id(arg_mm2s_input_ref);
+    xrtMemoryGroup bank_s2mm_mutual_info  = krnl_s2mm.group_id(arg_s2mm_mi);
 
     // create device buffers - if you have to load some data, here they are
-    xrt::bo buffer_flt = xrt::bo(device, buffer_size * sizeof(uint8_t), xrt::bo::flags::normal, bank_flt); 
-    xrt::bo buffer_ref = xrt::bo(device, buffer_size * sizeof(uint8_t), xrt::bo::flags::normal, bank_ref); 
-    xrt::bo buffer_output = xrt::bo(device, sizeof(float), xrt::bo::flags::normal, bank_mutual_info_output);
+    xrt::bo buffer_flt = xrt::bo(device, buffer_size * sizeof(uint8_t), xrt::bo::flags::normal, bank_mm2s_input_flt); 
+    xrt::bo buffer_ref = xrt::bo(device, buffer_size * sizeof(uint8_t), xrt::bo::flags::normal, bank_mm2s_input_ref); 
+    xrt::bo buffer_output = xrt::bo(device, sizeof(float), xrt::bo::flags::normal, bank_s2mm_mutual_info);
     std::cout << "Done" << std::endl;
     // create runner instances
 
     std::cout << "4. Create Run Objects" << std::endl;
     xrt::run run_mutual_info  = xrt::run(krnl_mutual_info);
+    xrt::run run_mm2s  = xrt::run(krnl_mm2s);
+    xrt::run run_s2mm  = xrt::run(krnl_s2mm);
     std::cout << "Done" << std::endl;
-    // set setup_aie kernel arguments
 
     std::cout << "5. Set Kernel Arguments" << std::endl;
-    run_mutual_info.set_arg(arg_mi_img_flt, buffer_flt);
-    run_mutual_info.set_arg(arg_mi_img_ref, buffer_ref);
-    run_mutual_info.set_arg(arg_mi_out, buffer_output);
-    run_mutual_info.set_arg(arg_mi_n_couples, n_couples+padding);
-    run_mutual_info.set_arg(arg_mi_padding, padding);
+    run_mm2s.set_arg(arg_mm2s_input_flt, buffer_flt);
+    run_mm2s.set_arg(arg_mm2s_input_ref, buffer_ref);
+    run_s2mm.set_arg(arg_s2mm_mi, buffer_output);
+    run_mm2s.set_arg(arg_mm2s_n_couples, n_couples+padding);
 
     // write data into the input buffer
     buffer_flt.write(input_flt);
@@ -282,9 +289,12 @@ int main(int argc, char *argv[]) {
 
     // ---------------------------------Run the Kernel--------------------------------------
     std::cout << "6. Run the Kernel" << std::endl;
-    // run the kernel
+    run_mm2s.start();
     run_mutual_info.start();
+    run_s2mm.start();
+    run_s2mm.wait();
     run_mutual_info.wait();
+    run_mm2s.wait();
     std::cout << "Done" << std::endl;
 
     // read the output buffer

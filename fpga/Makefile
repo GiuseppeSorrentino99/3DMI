@@ -25,34 +25,43 @@ ECHO=@echo
 .PHONY: help
 
 help::
-	$(ECHO) ""
 	$(ECHO) "Makefile Usage:"
-	$(ECHO) "  make all TARGET=<hw/hw_emu>"
+	$(ECHO) ""
+	$(ECHO) "  make compile"
+	$(ECHO) "      Command to generate xo kernel file"
 	$(ECHO) ""
 	$(ECHO) "  make clean"
 	$(ECHO) "      Command to remove all the generated files."
-	$(ECHO) ""
 
-PLATFORM ?= xilinx_u55c_gen3x16_xdma_3_202210_1
-#xilinx_vck5000_gen4x8_qdma_2_202220_1
+
+PLATFORM := xilinx_u55c_gen3x16_xdma_3_202210_1
 
 TARGET := hw
 
-# Use --optimize 3 to enable post-route optimizations. This may improve the bitstream but SIGNIFICANTLY increase compilation time
-XOCCLFLAGS := --kernel_frequency 200 --platform $(PLATFORM) -t $(TARGET) 
-
-XOS     := ../mutual_info/mutual_information_master_$(TARGET).xo 
-XOS    	+= ../fpga/mm2s_$(TARGET).xo
-XOS    	+= ../fpga/s2mm_$(TARGET).xo
-XCLBIN  := overlay_$(TARGET).xclbin
-
 .phony: clean
 
-all: $(XCLBIN)
+################## hardware build 
 
-$(XCLBIN): $(XOS)
-	v++ --link $(XOCCFLAGS) $(XOCCLFLAGS) --config xclbin_overlay.cfg $^ -o ${XCLBIN}
+XOCCFLAGS := --platform $(PLATFORM) -t $(TARGET)  -s -g
 
+compile: mm2s_$(TARGET).xo s2mm_$(TARGET).xo 
+
+# Use --optimize 3 to enable post-route optimizations. This may improve the bitstream but SIGNIFICANTLY increase compilation time
+mm2s_$(TARGET).xo: ./mm2s.cpp
+	v++ $(XOCCFLAGS) --kernel mm2s -c -o $@ $<
+
+# Use --optimize 3 to enable post-route optimizations. This may improve the bitstream but SIGNIFICANTLY increase compilation time
+s2mm_$(TARGET).xo: ./s2mm.cpp
+	v++ $(XOCCFLAGS) --kernel s2mm -c -o $@ $<
+
+# as every C++ program, you may add libraies like: `pkg-config --libs opencv` `pkg-config --cflags opencv`
+testbench_mm2s: testbench/testbench_mm2s.cpp
+	g++ -std=c++14 -I. -I$(XILINX_HLS)/include -o testbench/$@ $^ -O2  
+
+testbench_s2mm: testbench/testbench_s2mm.cpp
+	g++ -std=c++14 -I. -I$(XILINX_HLS)/include -o testbench/$@ $^ -O2
+
+
+################## clean up
 clean:
-	$(RM) -r _x .Xil .ipcache *.ltx *.log *.sh *.jou *.info *.xclbin *.xo.* *.str *.xsa *.cdo.bin *bif *BIN *.package_summary *.link_summary *.txt *.bin && rm -rf cfg emulation_data sim
-	
+	$(RM) -rf *.xo *.xclbin *.xclbin.info *.xclbin.link_summary *.jou *.log *.xo.compile_summary _x .Xil
