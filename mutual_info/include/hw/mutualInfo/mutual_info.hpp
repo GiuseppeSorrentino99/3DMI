@@ -76,9 +76,8 @@
  #define MUTUAL_INF_H
  #include "ap_int.h"
  #include <hls_stream.h>
- #include "ap_axi_sdata.h"
-//typedef float data_t;
-typedef hls::axis<float, 0, 0, 0> data_t;
+
+ typedef float data_t;
  #define DATA_T_BITWIDTH 32
  typedef ap_uint<8> MY_PIXEL; 
  //0
@@ -117,8 +116,8 @@ typedef hls::axis<float, 0, 0, 0> data_t;
  #define UNPACK_DATA_TYPE ap_uint<UNPACK_DATA_BITWIDTH>
  
  #define INPUT_DATA_BITWIDTH (HIST_PE*UNPACK_DATA_BITWIDTH)
- //#define INPUT_DATA_TYPE ap_uint<INPUT_DATA_BITWIDTH>
- #define INPUT_DATA_TYPE hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0> //ap_axiu<INPUT_DATA_BITWIDTH, 0, 0, 0>
+ #define INPUT_DATA_TYPE ap_uint<INPUT_DATA_BITWIDTH>
+ 
  #define NUM_INPUT_DATA (DIMENSION*DIMENSION/(HIST_PE))
  
  #define WRAPPER_HIST2(num) wrapper_joint_histogram_##num
@@ -188,8 +187,8 @@ typedef hls::axis<float, 0, 0, 0> data_t;
  //#define FIXED ap_ufixed<42, 32>
  //8
  #ifndef FIXED
-     #define ENTROPY_TYPE float //data_t
-     #define OUT_ENTROPY_TYPE float //data_t
+     #define ENTROPY_TYPE data_t
+     #define OUT_ENTROPY_TYPE data_t
  #else
      #define ENTROPY_TYPE FIXED
      #define OUT_ENTROPY_TYPE UINT_OUT_ENTROPY_TYPE
@@ -209,15 +208,15 @@ typedef hls::axis<float, 0, 0, 0> data_t;
  
  /*****************/
  
-     extern "C" void mutual_information_master(hls::stream<INPUT_DATA_TYPE> & input_img, hls::stream<INPUT_DATA_TYPE> & input_ref, hls::stream<data_t> & mutual_info, hls::stream<INPUT_DATA_TYPE> & n_couples);
+ //#ifndef CACHING
+     extern "C" void mutual_information_master(hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & input_img, hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & input_ref, hls::stream<hls::axis<float, 0, 0, 0>> & mutual_info, hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & n_couples, ap_uint<64> axi_ctrl );
+ //#else
+ //    extern "C" void mutual_information_master(INPUT_DATA_TYPE * input_img,  data_t * mutual_info, unsigned int functionality, int* status, unsigned int n_couples);
+ //#endif
  
  //11 
  #define ACC_SIZE 8
  // 12
  
- 
- #include "utils.hpp"
- #include "histogram.hpp"
- #include "entropy.hpp"
 
 #endif

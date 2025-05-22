@@ -110,14 +110,14 @@ int main(int argc, char** argv) {
     }
 
     // create the input streams
-    hls::stream<INPUT_DATA_TYPE> input_img("input_img");
-    hls::stream<INPUT_DATA_TYPE> input_ref("input_ref");
-    hls::stream<data_t> mutual_info("mutual_info");
-    hls::stream<INPUT_DATA_TYPE> n_couples_stream("n_couples_stream");
+    hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> input_img("input_img");
+    hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> input_ref("input_ref");
+    hls::stream<hls::axis<float, 0, 0, 0>> mutual_info("mutual_info");
+    hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> n_couples_stream("n_couples_stream");
 
     // write the input data to the streams
     for (int i = 0; i < DIMENSION*DIMENSION * (n_couples + padding); i+=8) {
-        INPUT_DATA_TYPE input_data;
+        hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0> input_data;
         input_data.data.range(7,0) = input_float[i];
         input_data.data.range(15,8) = input_float[i+1];
         input_data.data.range(23,16) = input_float[i+2];
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
         input_img.write(input_data);
     }
     for (int i = 0; i < DIMENSION*DIMENSION * (n_couples + padding); i+=8) {
-        INPUT_DATA_TYPE input_data;
+        hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0> input_data;
         input_data.data.range(7,0) = input_reference[i];
         input_data.data.range(15,8) = input_reference[i+1];
         input_data.data.range(23,16) = input_reference[i+2];
@@ -144,11 +144,14 @@ int main(int argc, char** argv) {
 
     // write the number of couples to the stream
     // leggi da input ref
-    INPUT_DATA_TYPE n_couples_data;
+    hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0> n_couples_data;
     n_couples_data.data = n_couples;
     n_couples_stream.write(n_couples_data);
-    mutual_information_master(input_img, input_ref, mutual_info, n_couples_stream);
-    data_t output_data = mutual_info.read();
+
+    ap_uint<64> axi_ctrl = 0x1;
+
+    mutual_information_master(input_img, input_ref, mutual_info, n_couples_stream, axi_ctrl);
+    hls::axis<float, 0, 0, 0> output_data = mutual_info.read();
     std::cout << "Output data: " << output_data.data << std::endl;
     
     // call software mi

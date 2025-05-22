@@ -4,8 +4,8 @@
 * High-Level-Synthesis implementation file for Mutual Information computation
 *
 ****************************************************************/
-#include "./include/hw/mutualInfo/histogram.hpp"
-#include "./include/hw/mutualInfo/entropy.hpp"
+#include "include/hw/mutualInfo/histogram.h"
+#include "include/hw/mutualInfo/entropy.h"
 #include <stdio.h>
 #include <string.h>
 #include "assert.h"
@@ -13,7 +13,6 @@
 #include "hls_math.h"
 #include "include/hw/mutualInfo/utils.hpp"
 #include "stdlib.h"
-#include "ap_axi_sdata.h"
 
 const unsigned int fifo_in_depth =  (N_COUPLES_MAX*MYROWS*MYCOLS)/(HIST_PE);
 const unsigned int fifo_out_depth = 1;
@@ -29,7 +28,8 @@ typedef enum FUNCTION_T {
 	COMPUTE = 1
 } FUNCTION;
 
-void compute(hls::stream<INPUT_DATA_TYPE> & flt_stream, hls::stream<INPUT_DATA_TYPE> & ref_stream,  hls::stream<data_t> &mutual_information_stream, unsigned int n_couples, unsigned int padding){
+
+void compute(hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & input_img, hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & input_ref,  hls::stream<hls::axis<float, 0, 0, 0>> & mutual_info, uint64_t n_couples, unsigned padding){
 	//The end_reset params resets the content of j_h;
 	//If not set, the PE memories will accumulate over different iterations.
 	//It is set to 1 at the end of the data flow.
@@ -60,12 +60,11 @@ void compute(hls::stream<INPUT_DATA_TYPE> & flt_stream, hls::stream<INPUT_DATA_T
 
 #pragma HLS DATAFLOW
 
-/*
 static	hls::stream<INPUT_DATA_TYPE> ref_stream("ref_stream");
 #pragma HLS STREAM variable=ref_stream depth=2 dim=1
 static	hls::stream<INPUT_DATA_TYPE> flt_stream("flt_stream");
 #pragma HLS STREAM variable=flt_stream depth=2 dim=1
-*/
+
 static  hls::stream<UNPACK_DATA_TYPE> ref_pe_stream[HIST_PE];
 #pragma HLS STREAM variable=ref_pe_stream depth=2 dim=1
 static  hls::stream<UNPACK_DATA_TYPE> flt_pe_stream[HIST_PE];
@@ -110,19 +109,18 @@ static	hls::stream<OUT_ENTROPY_TYPE> col_entropy_split_stream[ENTROPY_PE];
 #pragma HLS STREAM variable=col_entropy_split_stream depth=2 dim=1
 
 
-//static	hls::stream<data_t> mutual_information_stream("mutual_information_stream");
-//#pragma HLS STREAM variable=mutual_information_stream depth=2 dim=1
+static	hls::stream<data_t> mutual_information_stream("mutual_information_stream");
+#pragma HLS STREAM variable=mutual_information_stream depth=2 dim=1
 
 
 	// Step 1: read data from DDR and split them
-	/*
-	axi2stream_volume<INPUT_DATA_TYPE, NUM_INPUT_DATA>(flt_stream, input_img, n_couples);
+	
+	stream2stream_volume<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>, INPUT_DATA_TYPE, NUM_INPUT_DATA>( input_img, flt_stream, n_couples);
 #ifndef CACHING
-	axi2stream_volume<INPUT_DATA_TYPE, NUM_INPUT_DATA>(ref_stream, input_ref,n_couples);
+	stream2stream_volume<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>, INPUT_DATA_TYPE, NUM_INPUT_DATA>( input_ref, ref_stream, n_couples);
 #else
 	bram2stream<INPUT_DATA_TYPE, NUM_INPUT_DATA>(ref_stream, input_ref);
 #endif
-	*/
 
 	split_stream_volume<INPUT_DATA_TYPE, UNPACK_DATA_TYPE, UNPACK_DATA_BITWIDTH, NUM_INPUT_DATA, HIST_PE>(ref_stream, ref_pe_stream,n_couples);
 	split_stream_volume<INPUT_DATA_TYPE, UNPACK_DATA_TYPE, UNPACK_DATA_BITWIDTH, NUM_INPUT_DATA, HIST_PE>(flt_stream, flt_pe_stream,n_couples);
@@ -156,7 +154,7 @@ static	hls::stream<OUT_ENTROPY_TYPE> col_entropy_split_stream[ENTROPY_PE];
 
 
 	// Step 7: Write result back to DDR
-	//stream2axi<data_t, fifo_out_depth>(mutual_info, mutual_information_stream);
+	stream2stream_mi<data_t,hls::axis<float, 0, 0, 0>, fifo_out_depth>( mutual_information_stream, mutual_info);
 
 }
 
@@ -178,30 +176,30 @@ extern "C"{
 #else
 	void mutual_information_master
 #endif //KERNEL_NAME
-(hls::stream<INPUT_DATA_TYPE> & input_img, hls::stream<INPUT_DATA_TYPE> & input_ref, hls::stream<data_t> & mutual_info, hls::stream<INPUT_DATA_TYPE> & n_couples ){
+(hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & input_img, hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & input_ref, hls::stream<hls::axis<float, 0, 0, 0>> & mutual_info, hls::stream<hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0>> & n_couples, ap_uint<64> axi_ctrl ){
 
 unsigned padding = 0;
-#pragma HLS INTERFACE mode=axis port=input_img name=s_input_img
-#pragma HLS INTERFACE mode=axis port=input_ref name=s_input_ref
-#pragma HLS INTERFACE mode=axis port=mutual_info name=s_mutual_info
-#pragma HLS INTERFACE mode=axis port=n_couples name=s_n_couples
+#pragma HLS INTERFACE mode=axis register port=input_img name=s_input_img
+#pragma HLS INTERFACE mode=axis register port=input_ref name=s_input_ref
+#pragma HLS INTERFACE mode=axis register port=mutual_info name=s_mutual_info
+#pragma HLS INTERFACE mode=axis register port=n_couples name=s_n_couples
 
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
+#pragma HLS INTERFACE s_axilite port=axi_ctrl bundle=control
+
 // N-couples pragma correctly added
 
-	INPUT_DATA_TYPE tmp = n_couples.read();
-	uint32_t n_couples_value = (uint32_t)tmp.data;
-	printf("n_couples_value: %d\n", n_couples_value);
+
+	hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0> tmp = n_couples.read();
+	uint64_t n_couples_value = tmp.data;
 
 	if(n_couples_value > N_COUPLES_MAX)
 		n_couples_value = N_COUPLES_MAX;
 
 	compute(input_img, input_ref, mutual_info, n_couples_value, padding);
 }
-#ifdef KERNEL_NAME
-}
-#endif
+
 
 /*
 #else // CACHING
@@ -213,7 +211,7 @@ extern "C"{
 #else
 	void mutual_information_master
 #endif //KERNEL_NAME
-(INPUT_DATA_TYPE * input_img,  data_t * mutual_info, unsigned int functionality, int *status, unsigned int n_couples){
+( hls::axis<ap_uint<INPUT_DATA_BITWIDTH>, 0, 0, 0> & input_img,  data_t * mutual_info, unsigned int functionality, int *status, unsigned int n_couples){
 #pragma HLS INTERFACE m_axi port=input_img depth=fifo_in_depth offset=slave bundle=gmem0
 #pragma HLS INTERFACE m_axi port=mutual_info depth=1 offset=slave bundle=gmem2
 #pragma HLS INTERFACE m_axi port=status depth=1 offset=slave bundle=gmem1
@@ -252,10 +250,9 @@ static INPUT_DATA_TYPE ref_img[n_couples * DIMENSION * DIMENSION] = {0};
 }
 
 #endif //CACHING
-
+*/
 #ifdef KERNEL_NAME
 
 } // extern "C"
 
 #endif //KERNEL_NAME
-*/
