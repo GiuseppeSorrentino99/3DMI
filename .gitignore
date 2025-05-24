@@ -37,3 +37,5 @@ fpga/*.csv
 fpga/*.log
 fpga/*.jou
 fpga/*.str
+coyote_app/hw/build_hw
+coyote_app/sw/build_sw
