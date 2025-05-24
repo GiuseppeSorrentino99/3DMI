@@ -1,11 +1,11 @@
 # VOTED: Versal-Optimization-Toolkit-for-Education-ed-Heterogeneous-System-Development - FPGA101 Course
 
 ## Info & Description
-This repository contains the main infrastructure for an AIE-PL project, providing simple automation for testing your code.
-Nothing here is provided as "the best way to do". Surely there are other solutions, maybe there are better ones. But still,
-this is a useful starting point.
+This repository contains the main infrastructure for to build the 3DMI Coyote app.
 
 ## Main Structure
+
+The coyote_app folder contains the hw and sw to build a Coyote project.
 
 **mutual_info** - contains the hardware for your application. 
 **sw** - contains the software for your application.  
@@ -19,30 +19,12 @@ _make aie_compile SHELL_NAME=< qdma|xdma >_ : compile your code for VLIW archite
 _make aie_simulate_ : simulate your code for VLIW architecture, as your final hardware.  
 _make clean_ : removes all the output file created by the commands listed above.  
 
-### FPGA
-
-testbench : it contains a testbench for each kernel
 
 **Main Commands**
+_make coyote_hw_ : builds the hw bitstream for Coyote
 
-_make compile TARGET=HW/HW_EMU_ _SHELL_NAME=< qdma|xdma >_ : it compiles all your kernel, skipping the ones already compiled.  
-_make run_testbench_setup_aie_ : compiles and execute the testbench for the kernel setup_aie.  
-_make run_testbench_sink_from_aie_ : compiles and execute the testbench for the kernel setup_aie.  
+_make coyote_sw_ : build the software hostcode for Coyote
 
-### linking
-
-Contains the cfg file required to link the components. For the Versal case, you have also to link the AI Engine.
-
-**Main Commands**
-
-_make all TARGET=HW/HW_EMU SHELL_NAME=< qdma|xdma >_  : it builds the hardware or the hardware emu linking your componentsEMU TARGET=HW/HW_EMU
-make clean: it removes all files.
-
-### Sw
-
-Once you have devised your accelerator, you need to create the host code for using it. Notice that the presented example is a minimal host code, which may be improved using all the capabilities of C++ code ( classes, abstraction and so on).
-
-**Main Commands**
 _make build_sw_ : it compiles the sw
 
 _./setup_emu.sh -s on --shell =< qdma|xdma >_ : enables the hardware emulation

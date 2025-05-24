@@ -27,7 +27,7 @@ ECHO=@echo
 APP_NAME ?= trilli_app
 TARGET := hw
 PLATFORM := xilinx_u55c_gen3x16_xdma_3_202210_1
-
+COYOTE_DEVICE="u55c"
 help::
 	$(ECHO) "Makefile Usage:"
 	$(ECHO) "  make build_hw [TARGET=hw_emu]"
@@ -44,6 +44,42 @@ include ${CONFIG}
 TASK := STEP
 
 hw_dependencies := compile_krnl_mutual_info compile_krnl_fpga
+
+COYOTE_HW_SRC_DIR := coyote_app/hw
+COYOTE_TARGET_HW_DIR := Coyote/examples/3DMI/hw
+COYOTE_BUILD_HW_DIR := $(COYOTE_TARGET_HW_DIR)/build_hw
+COYOTE_LINKED_HW_FILES := $(wildcard $(COYOTE_HW_SRC_DIR)/*)
+COYOTE_HW_LINKS := $(patsubst $(COYOTE_HW_SRC_DIR)/%, $(COYOTE_TARGET_HW_DIR)/%, $(COYOTE_LINKED_HW_FILES))
+
+coyote_hw: $(COYOTE_HW_LINKS)
+	@echo "Preparing build directory..."
+	rm -rf $(COYOTE_BUILD_HW_DIR)
+	mkdir -p $(COYOTE_BUILD_HW_DIR)
+	cd $(COYOTE_BUILD_HW_DIR) && cmake ../ -DFDEV_NAME=${COYOTE_DEVICE} && make project -j && make bitgen -j
+
+$(COYOTE_TARGET_HW_DIR):
+	mkdir -p $(COYOTE_TARGET_HW_DIR)
+
+$(COYOTE_TARGET_HW_DIR)/%: $(COYOTE_HW_SRC_DIR)/% | $(COYOTE_TARGET_HW_DIR)
+	ln -sf $(abspath $<) $@
+
+COYOTE_SW_SRC_DIR := coyote_app/sw
+COYOTE_TARGET_SW_DIR := Coyote/examples/3DMI/sw
+COYOTE_BUILD_SW_DIR := $(COYOTE_TARGET_SW_DIR)/build_sw
+COYOTE_LINKED_SW_FILES := $(wildcard $(COYOTE_SW_SRC_DIR)/*)
+COYOTE_SW_LINKS := $(patsubst $(COYOTE_SW_SRC_DIR)/%, $(COYOTE_TARGET_SW_DIR)/%, $(COYOTE_LINKED_SW_FILES))
+
+coyote_sw: $(COYOTE_SW_LINKS)
+	@echo "Preparing build directory..."
+	rm -rf $(COYOTE_BUILD_SW_DIR)
+	mkdir -p $(COYOTE_BUILD_SW_DIR)
+	cd $(COYOTE_BUILD_SW_DIR) && cmake ../ && make -j
+
+$(COYOTE_TARGET_SW_DIR):
+	mkdir -p $(COYOTE_TARGET_SW_DIR)
+
+$(COYOTE_TARGET_SW_DIR)/%: $(COYOTE_SW_SRC_DIR)/% | $(COYOTE_TARGET_SW_DIR)
+	ln -sf $(abspath $<) $@
 
 build_hw: $(hw_dependencies) hw_link
 
@@ -108,7 +144,7 @@ build_and_pack:
 	make pack
 
 # Clean objects
-clean: clean_mutual_info clean_hw clean_sw clean_fpga
+clean: clean_mutual_info clean_hw clean_sw clean_fpga clean_coyote_hw clean_coyote_sw
 
 clean_mutual_info:
 	make -C ./mutual_info clean
@@ -121,3 +157,9 @@ clean_sw:
 
 clean_fpga:
 	make -C ./fpga clean
+
+clean_coyote_hw:
+	rm -rf $(COYOTE_BUILD_HW_DIR)
+
+clean_coyote_sw:
+	rm -rf $(COYOTE_BUILD_SW_DIR)
