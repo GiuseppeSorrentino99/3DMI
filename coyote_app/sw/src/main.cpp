@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
     uint8_t *ref = (uint8_t *) coyote_thread->getMem({coyote::CoyoteAlloc::HPF, buffer_size * sizeof(uint8_t)});
     float *mutual_info = (float *) coyote_thread->getMem({coyote::CoyoteAlloc::HPF, 16 * sizeof(float)});
     uint64_t *n_couples_mem = (uint64_t *) coyote_thread->getMem({coyote::CoyoteAlloc::HPF, sizeof(uint64_t)});
-    if (!flt || !ref || !mutual_info || !n_couples) { throw std::runtime_error("Could not allocate memory for vectors, exiting..."); }
+    if (!flt || !ref || !mutual_info || !n_couples_mem) { throw std::runtime_error("Could not allocate memory for vectors, exiting..."); }
 
     std::cout << "Buffers allocated" << std::endl;
 

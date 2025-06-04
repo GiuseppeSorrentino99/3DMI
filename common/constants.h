@@ -50,6 +50,7 @@ SOFTWARE.
 #define J_HISTO_COLS J_HISTO_ROWS
 #define HISTO_ROWS J_HISTO_ROWS
 #define INTERVAL_NUMBER 256 // L, amount of levels we want for the binning process, thus at the output
+ #define ANOTHER_DIMENSION J_HISTO_ROWS // should be equal to j_histo_rows
 
 #define SIZE_ROWS 512 // how many rows per aie tile
 #define SIZE_COLS 512 // how many columns per aie tile
