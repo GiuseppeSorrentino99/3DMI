@@ -271,6 +271,16 @@ typedef ap_uint<MIN_HIST_BITS> MinHistBits_t;\n \
 typedef ap_uint<MIN_HIST_PE_BITS> MinHistPEBits_t;\n \
 \n \
 \n \
+\n // TO BE ADDED IN AUTOMATION \
+\n typedef MinHistBits_t HIST_TYPE; \
+\n typedef MinHistPEBits_t HIST_PE_TYPE; \
+\n #define HIST_INDEX_DATA_BITWIDTH (UNPACK_DATA_BITWIDTH * 2) \
+\n #define HIST_INDEX_DATA_TYPE ap_uint<HIST_INDEX_DATA_BITWIDTH> \
+\n const unsigned int fifo_in_depth = (MYROWS * MYCOLS) / (HIST_PE); \
+\n const unsigned int fifo_out_depth = 1; \
+\n const unsigned int pe_j_h_partition = HIST_PE; \
+\n // FINISHED ADDITIONS \
+\n \
 #define ENTROPY_PE {6}\n \
 //6\n \
 const unsigned int ENTROPY_PE_CONST = ENTROPY_PE;\n \
@@ -317,9 +327,9 @@ const unsigned int ENTROPY_PE_CONST = ENTROPY_PE;\n \
 /*****************/\n \
 \n \
 #ifndef CACHING\n \
-    extern {11} void mutual_information_master(hls::stream<INPUT_DATA_TYPE> &stream_input_img, INPUT_DATA_TYPE * input_ref, data_t * mutual_info, unsigned int n_couples, unsigned int padding);\n \
+    extern {11} void mutual_information_master(INPUT_DATA_TYPE* input_flt, INPUT_DATA_TYPE * input_ref, data_t * mutual_info, unsigned int size);\n \
 #else\n \
-    extern {11} void mutual_information_master(INPUT_DATA_TYPE * input_img,  data_t * mutual_info, unsigned int functionality, int* status, unsigned int n_couples);\n \
+    extern {11} void mutual_information_master(INPUT_DATA_TYPE * input_img,  data_t * mutual_info, unsigned int functionality, int* status,  unsigned int size);\n \
 #endif\n \
 \n \
 //11 \n \
